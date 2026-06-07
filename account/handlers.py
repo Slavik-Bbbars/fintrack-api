@@ -3,9 +3,11 @@ from core.chemas import UserCreate, UserLogin
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,exists
 from jose import jwt
+import bcrypt
 
-from db import LocalSession
+
 from models import User
+from core.dependencies import get_db
 
 import os
 from dotenv import load_dotenv
@@ -16,9 +18,6 @@ secret_key = os.getenv('SECRET_KEY')
 
 account_router = APIRouter(prefix= '/users' , tags=['логин и регистрация'])
 
-async def get_db():
-    async with LocalSession() as session:
-        yield session
 
 @account_router.post('/register')
 async def register(data : UserCreate, db: AsyncSession = Depends(get_db)):  #передаем схему для валидации + сессию бд
@@ -27,7 +26,9 @@ async def register(data : UserCreate, db: AsyncSession = Depends(get_db)):  #п�
     if existing:
         raise HTTPException(status_code=400, detail= 'Пользователь с таким email уже существует')
 
-    new_user = User(**data.model_dump())
+    new_user = User(**data.model_dump(exclude= {'password'}),
+                    password = bcrypt.hashpw(data.password.encode(), bcrypt.gensalt()).decode())
+
     db.add(new_user)
     await db.commit()
 
@@ -39,7 +40,7 @@ async def login(data : UserLogin, db: AsyncSession = Depends(get_db)):
     existing = result.scalar_one_or_none()
     if not existing:
         raise HTTPException(status_code= 401, detail= 'Неверный Email или пароль')
-    if existing.password != data.password:
+    if not bcrypt.checkpw(data.password.encode(), existing.password.encode()):
         raise HTTPException(status_code=401, detail='Неверный Email или пароль')
 
     payload = {

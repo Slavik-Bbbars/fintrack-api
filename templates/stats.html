@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintrack — Статистика</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent: #7c6af7;
+    --accent2: #3ecf8e;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --danger: #f56565;
+    --income: #3ecf8e;
+    --expense: #f56565;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a {
+    display: block; padding: 7px 14px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500;
+    transition: color .2s, background .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--border); }
+  .nav-links a.active { color: var(--accent); }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 14px; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+
+  .page-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  /* FILTERS */
+  .filters {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .filter-group { display: flex; flex-direction: column; gap: 8px; min-width: 160px; }
+
+  label {
+    font-size: 12px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted);
+  }
+
+  select, input[type=checkbox] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .toggle-btn.active-income { background: rgba(62,207,142,.12); border-color: var(--income); color: var(--income); }
+  .toggle-btn.active-expense { background: rgba(245,101,101,.12); border-color: var(--expense); color: var(--expense); }
+
+  .checkbox-row { display: flex; align-items: center; gap: 10px; padding-bottom: 2px; }
+  .checkbox-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .checkbox-row span { font-size: 14px; color: var(--text); }
+
+  .btn-apply {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 11px 24px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s;
+    align-self: flex-end;
+  }
+  .btn-apply:hover { opacity: .85; }
+
+  .error-hint {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: -12px;
+    margin-bottom: 8px;
+    display: none;
+  }
+  .error-hint.show { display: block; }
+
+  /* RESULTS */
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    animation: fadeUp .4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+
+  .chart-wrap { position: relative; height: 260px; display: flex; align-items: center; justify-content: center; }
+
+  .empty-chart { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+  .empty-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+
+  /* LIST */
+  .list-card { grid-column: span 2; }
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .list-item:last-child { border-bottom: none; }
+
+  .list-left { display: flex; align-items: center; gap: 12px; }
+
+  .item-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .item-icon.income { background: rgba(62,207,142,.12); }
+  .item-icon.expense { background: rgba(245,101,101,.12); }
+
+  .item-cat { font-size: 14px; font-weight: 500; }
+  .item-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .item-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+  .item-amount.income { color: var(--income); }
+  .item-amount.expense { color: var(--expense); }
+
+  .empty-list { color: var(--muted); font-size: 14px; padding: 24px 0; text-align: center; }
+  .loading { color: var(--muted); font-size: 14px; padding: 24px; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">fin<span>track</span></div>
+  <ul class="nav-links">
+    <li><a href="index.html">Главная</a></li>
+    <li><a href="alltime.html">За год</a></li>
+    <li><a href="filters.html">Фильтры</a></li>
+    <li><a href="records.html" class="active">Записи</a></li>
+    <li><a href="add.html">+ Добавить</a></li>
+  </ul>
+  <button class="btn-logout" onclick="logout()">Выйти</button>
+</nav>
+
+<main>
+  <div class="page-title">Статистика</div>
+  <div class="page-sub">Фильтрация по категории и месяцу</div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Тип</label>
+      <div class="toggle-row">
+        <button class="toggle-btn active-income" id="btnIncome" onclick="setType('income')">Доходы</button>
+        <button class="toggle-btn" id="btnExpense" onclick="setType('expense')">Расходы</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>Категория</label>
+      <select id="categorySelect">
+        <option value="">Все категории</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Текущий месяц</label>
+      <div class="checkbox-row">
+        <input type="checkbox" id="monthCheck" checked onchange="toggleMonth()">
+        <span id="monthLabel">Июнь 2026</span>
+      </div>
+    </div>
+
+    <button class="btn-apply" onclick="applyFilters()">Применить</button>
+  </div>
+
+  <div class="error-hint" id="filterError">Выберите хотя бы один фильтр — месяц или категорию</div>
+
+  <div class="results" id="results">
+    <div class="result-card" style="grid-column:span 2">
+      <div class="loading">Нажмите «Применить» для загрузки данных</div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'login.html';
+
+  const INCOME_CATS = ['Зарплата','Фриланс','Подарок','Инвестиции','Другое'];
+  const EXPENSE_CATS = ['Продукты','Транспорт','Жильё и ЖКХ','Здоровье','Развлечения','Одежда','Образование','Спорт','Кафе и рестораны','Путешествия','Техника','Другое'];
+  const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const CATEGORY_ICONS = {
+    'Продукты':'🛒','Транспорт':'🚇','Жильё и ЖКХ':'🏠','Здоровье':'💊',
+    'Развлечения':'🎮','Одежда':'👕','Образование':'📚','Спорт':'🏃',
+    'Кафе и рестораны':'☕','Путешествия':'✈️','Техника':'💻','Другое':'📦',
+    'Зарплата':'💼','Фриланс':'🖥️','Подарок':'🎁','Инвестиции':'📈',
+  };
+
+  let currentType = 'income';
+  const now = new Date();
+  document.getElementById('monthLabel').textContent = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  function setType(type) {
+    currentType = type;
+    document.getElementById('btnIncome').className = 'toggle-btn' + (type === 'income' ? ' active-income' : '');
+    document.getElementById('btnExpense').className = 'toggle-btn' + (type === 'expense' ? ' active-expense' : '');
+    fillCategories();
+  }
+
+  function fillCategories() {
+    const sel = document.getElementById('categorySelect');
+    const cats = currentType === 'income' ? INCOME_CATS : EXPENSE_CATS;
+    sel.innerHTML = '<option value="">Все категории</option>' +
+      cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  function toggleMonth() {}
+
+  async function applyFilters() {
+    const category = document.getElementById('categorySelect').value;
+    const monthBool = document.getElementById('monthCheck').checked;
+    const errEl = document.getElementById('filterError');
+
+    if (!category && !monthBool) {
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+
+    let url = `/finance/month-category?type=${currentType}&month_bool=${monthBool}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+
+    const res = await fetch(`${API}${url}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (res.status === 401) { logout(); return; }
+    const data = await res.json();
+
+    renderResults(data);
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+  }
+
+  function groupByCategory(data) {
+    const map = {};
+    data.forEach(f => { map[f.category] = (map[f.category] || 0) + f.amount; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }
+
+  function renderResults(data) {
+    const results = document.getElementById('results');
+    const type = currentType;
+
+    if (!data.length) {
+      results.innerHTML = `
+        <div class="result-card" style="grid-column:span 2">
+          <div class="empty-list">Нет данных по выбранным фильтрам</div>
+        </div>`;
+      return;
+    }
+
+    const groups = groupByCategory(data);
+    const total = data.reduce((s, f) => s + f.amount, 0);
+    const colors = type === 'income'
+      ? ['#3ecf8e','#5dd9a0','#7de3b2','#9dedc4','#bcf5d6']
+      : ['#f56565','#f78080','#f99a9a','#fbb4b4','#fdcece'];
+
+    results.innerHTML = `
+      <div class="result-card">
+        <div class="result-title">По категориям · итого ${fmt(total)}</div>
+        <div class="chart-wrap"><canvas id="statsChart"></canvas></div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">Список транзакций</div>
+        <div id="transList"></div>
+      </div>
+    `;
+
+    new Chart(document.getElementById('statsChart'), {
+      type: 'bar',
+      data: {
+        labels: groups.map(e => e[0]),
+        datasets: [{
+          data: groups.map(e => e[1]),
+          backgroundColor: colors,
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)}` } }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6b6b80', font: { family: 'DM Sans' } } },
+          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#6b6b80', font: { family: 'DM Sans' }, callback: v => fmt(v) } }
+        }
+      }
+    });
+
+    const sorted = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    document.getElementById('transList').innerHTML = sorted.map(f => `
+      <div class="list-item">
+        <div class="list-left">
+          <div class="item-icon ${type}">${CATEGORY_ICONS[f.category] || '📌'}</div>
+          <div>
+            <div class="item-cat">${f.category}</div>
+            <div class="item-date">${new Date(f.created_at).toLocaleDateString('ru-RU')}</div>
+          </div>
+        </div>
+        <div class="item-amount ${type}">${type === 'income' ? '+' : '-'}${fmt(f.amount)}</div>
+      </div>
+    `).join('');
+  }
+
+  function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+  }
+
+  fillCategories();
+  // дефолтно загружаем текущий месяц
+  applyFilters();
+</script>
+</body>
+</html>

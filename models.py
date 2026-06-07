@@ -29,6 +29,6 @@ class Finances(Base):
     amount : Mapped[float] = mapped_column(Float, nullable= False)
     type : Mapped[TransactionType] = mapped_column(Enum(TransactionType), nullable= False) #расходы или доходы
     category : Mapped[str] = mapped_column(String(50), nullable= False) #конкретная категория
-    created_at : Mapped[datetime] = mapped_column(DateTime, default= datetime.now())
+    created_at : Mapped[datetime] = mapped_column(DateTime(timezone= True), default=lambda: datetime.now(timezone.utc), index= True)
 
     user : Mapped['User'] = relationship('User',back_populates= 'finances')

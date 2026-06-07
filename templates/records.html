@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintrack — Записи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+    --accent: #7c6af7; --text: #e8e8f0; --muted: #6b6b80;
+    --danger: #f56565; --income: #3ecf8e; --expense: #f56565;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a { display: block; padding: 7px 14px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s, background .2s; }
+  .nav-links a:hover { color: var(--text); background: var(--border); }
+  .nav-links a.active { color: var(--accent); background: var(--border); }
+  .btn-logout { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: border-color .2s, color .2s; }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 36px 24px; }
+  .page-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  /* FILTERS */
+  .filters {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 24px; margin-bottom: 20px;
+    display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 8px; }
+  label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; outline: none; cursor: pointer; transition: border-color .2s;
+  }
+  select:focus { border-color: var(--accent); }
+  .toggle-row { display: flex; gap: 8px; }
+  .toggle-btn { flex: 1; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+  .toggle-btn.active-income { background: rgba(62,207,142,.12); border-color: var(--income); color: var(--income); }
+  .toggle-btn.active-expense { background: rgba(245,101,101,.12); border-color: var(--expense); color: var(--expense); }
+
+  /* TABLE */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+
+  .table-header {
+    display: grid; grid-template-columns: 40px 1fr 140px 120px 80px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+  }
+
+  .table-row {
+    display: grid; grid-template-columns: 40px 1fr 140px 120px 80px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    align-items: center; transition: background .15s;
+    animation: fadeUp .3s ease both;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: rgba(255,255,255,.02); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .row-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .row-icon.income { background: rgba(62,207,142,.12); }
+  .row-icon.expense { background: rgba(245,101,101,.12); }
+
+  .row-cat { font-size: 14px; font-weight: 500; }
+  .row-date { font-size: 13px; color: var(--muted); }
+
+  .row-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+  .row-amount.income { color: var(--income); }
+  .row-amount.expense { color: var(--expense); }
+
+  .row-id { font-size: 11px; color: var(--muted); font-family: monospace; }
+
+  .btn-delete {
+    background: transparent; border: 1px solid transparent;
+    border-radius: 8px; padding: 6px 10px; color: var(--muted);
+    cursor: pointer; font-size: 14px; transition: all .2s;
+  }
+  .btn-delete:hover { border-color: var(--danger); color: var(--danger); background: rgba(245,101,101,.08); }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-top: 1px solid var(--border);
+  }
+  .pagination-info { font-size: 13px; color: var(--muted); }
+  .pagination-btns { display: flex; gap: 8px; }
+  .page-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 14px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all .2s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .page-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .page-btn.current { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .empty { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
+  .loading { padding: 48px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* CONFIRM MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px; width: 100%; max-width: 360px;
+    transform: scale(.95); transition: transform .2s;
+  }
+  .modal-overlay.show .modal { transform: scale(1); }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .modal-sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .modal-btns { display: flex; gap: 10px; }
+  .btn-cancel { flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 10px; padding: 11px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: border-color .2s; }
+  .btn-cancel:hover { border-color: var(--muted); }
+  .btn-confirm { flex: 1; background: var(--danger); border: none; border-radius: 10px; padding: 11px; color: #fff; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+  .btn-confirm:hover { opacity: .85; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">fin<span>track</span></div>
+  <ul class="nav-links">
+    <li><a href="index.html">Главная</a></li>
+    <li><a href="alltime.html">За год</a></li>
+    <li><a href="filters.html">Фильтры</a></li>
+    <li><a href="records.html" class="active">Записи</a></li>
+    <li><a href="add.html">+ Добавить</a></li>
+  </ul>
+  <button class="btn-logout" onclick="logout()">Выйти</button>
+</nav>
+
+<main>
+  <div class="page-title">Записи</div>
+  <div class="page-sub">Управление транзакциями</div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Тип</label>
+      <div class="toggle-row">
+        <button class="toggle-btn active-income" id="btnIncome" onclick="setType('income')">💰 Доходы</button>
+        <button class="toggle-btn" id="btnExpense" onclick="setType('expense')">💸 Расходы</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Категория</label>
+      <select id="categorySelect" onchange="resetAndLoad()">
+        <option value="">Все категории</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Период</label>
+      <select id="periodSelect" onchange="resetAndLoad()">
+        <option value="year">Текущий год</option>
+        <option value="month">Текущий месяц</option>
+        <option value="all">Всё время</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-header">
+      <div></div>
+      <div>Категория</div>
+      <div>Дата</div>
+      <div>Сумма</div>
+      <div></div>
+    </div>
+    <div id="tableBody"><div class="loading">Загрузка...</div></div>
+    <div class="pagination" id="pagination" style="display:none">
+      <div class="pagination-info" id="pageInfo"></div>
+      <div class="pagination-btns" id="pageBtns"></div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Удалить запись?</div>
+    <div class="modal-sub" id="modalSub">Это действие нельзя отменить.</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-confirm" onclick="confirmDelete()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'login.html';
+
+  const INCOME_CATS = ['Зарплата','Фриланс','Подарок','Инвестиции','Другое'];
+  const EXPENSE_CATS = ['Продукты','Транспорт','Жильё и ЖКХ','Здоровье','Развлечения','Одежда','Образование','Спорт','Кафе и рестораны','Путешествия','Техника','Другое'];
+  const ICONS = {'Продукты':'🛒','Транспорт':'🚇','Жильё и ЖКХ':'🏠','Здоровье':'💊','Развлечения':'🎮','Одежда':'👕','Образование':'📚','Спорт':'🏃','Кафе и рестораны':'☕','Путешествия':'✈️','Техника':'💻','Другое':'📦','Зарплата':'💼','Фриланс':'🖥️','Подарок':'🎁','Инвестиции':'📈'};
+
+  const LIMIT = 10;
+  let currentType = 'income';
+  let currentPage = 1;
+  let totalPages = 1;
+  let deleteId = null;
+
+  function fmt(n) {
+    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+  }
+
+  function setType(t) {
+    currentType = t;
+    document.getElementById('btnIncome').className = 'toggle-btn' + (t==='income' ? ' active-income' : '');
+    document.getElementById('btnExpense').className = 'toggle-btn' + (t==='expense' ? ' active-expense' : '');
+    fillCategories();
+    resetAndLoad();
+  }
+
+  function fillCategories() {
+    const sel = document.getElementById('categorySelect');
+    const cats = currentType === 'income' ? INCOME_CATS : EXPENSE_CATS;
+    sel.innerHTML = '<option value="">Все категории</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  function resetAndLoad() {
+    currentPage = 1;
+    load();
+  }
+
+  async function load() {
+    const category = document.getElementById('categorySelect').value;
+    const period = document.getElementById('periodSelect').value;
+    const offset = (currentPage - 1) * LIMIT;
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '<div class="loading">Загрузка...</div>';
+
+    let data, total;
+
+    if (category || period === 'month') {
+      // используем month-category
+      let url = `/finance/month-category?type=${currentType}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      if (period === 'month') url += `&month_bool=true`;
+      else url += `&month_bool=false`;
+
+      const res = await apiFetch(url);
+      if (!res) return;
+
+      // пагинация на фронте для month-category
+      total = res.length;
+      totalPages = Math.ceil(total / LIMIT);
+      data = res.slice(offset, offset + LIMIT);
+
+    } else {
+      // используем all с пагинацией на бэке
+      let url = `/finance/all?type=${currentType}&limit=${LIMIT}&offset=${offset}`;
+      if (period === 'year') url += ''; // дефолт year без limit не работает, используем all с limit
+
+      const res = await apiFetch(url);
+      if (!res) return;
+
+      // all с limit возвращает {items, total}
+      data = res.items || res;
+      total = res.total || data.length;
+      totalPages = Math.ceil(total / LIMIT);
+    }
+
+    renderTable(data);
+    renderPagination(total);
+  }
+
+  async function apiFetch(url) {
+    const res = await fetch(`${API}${url}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.status === 401) { logout(); return null; }
+    return res.json();
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById('tableBody');
+    if (!data.length) {
+      tbody.innerHTML = '<div class="empty">Записей не найдено</div>';
+      document.getElementById('pagination').style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = data.map((f, i) => `
+      <div class="table-row" style="animation-delay:${i*0.03}s">
+        <div class="row-icon ${currentType}">${ICONS[f.category]||'📌'}</div>
+        <div>
+          <div class="row-cat">${f.category}</div>
+          <div class="row-id">#${f.id_f}</div>
+        </div>
+        <div class="row-date">${new Date(f.created_at).toLocaleDateString('ru-RU')}</div>
+        <div class="row-amount ${currentType}">${currentType==='income'?'+':'-'}${fmt(f.amount)}</div>
+        <div>
+          <button class="btn-delete" onclick="openModal(${f.id_f}, '${f.category}', ${f.amount})">🗑</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderPagination(total) {
+    const pag = document.getElementById('pagination');
+    const info = document.getElementById('pageInfo');
+    const btns = document.getElementById('pageBtns');
+
+    if (totalPages <= 1) { pag.style.display = 'none'; return; }
+    pag.style.display = 'flex';
+
+    const from = (currentPage-1)*LIMIT+1;
+    const to = Math.min(currentPage*LIMIT, total);
+    info.textContent = `${from}–${to} из ${total}`;
+
+    // показываем максимум 5 кнопок страниц
+    let pages = [];
+    const delta = 2;
+    for (let i = Math.max(1, currentPage-delta); i <= Math.min(totalPages, currentPage+delta); i++) {
+      pages.push(i);
+    }
+
+    btns.innerHTML = `
+      <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>←</button>
+      ${pages.map(p => `<button class="page-btn ${p===currentPage?'current':''}" onclick="goPage(${p})">${p}</button>`).join('')}
+      <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>→</button>
+    `;
+  }
+
+  function goPage(p) {
+    if (p < 1 || p > totalPages) return;
+    currentPage = p;
+    load();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // MODAL
+  function openModal(id, category, amount) {
+    deleteId = id;
+    document.getElementById('modalSub').textContent = `${category} · ${fmt(amount)} · #${id}`;
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    deleteId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteId) return;
+    const res = await fetch(`${API}/finance/${deleteId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    closeModal();
+    if (res.status === 401) { logout(); return; }
+    load(); // перезагружаем список
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+
+  fillCategories();
+  load();
+</script>
+</body>
+</html>

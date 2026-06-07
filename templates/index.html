@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintrack — Главная</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+    --accent: #7c6af7; --accent2: #3ecf8e; --text: #e8e8f0;
+    --muted: #6b6b80; --danger: #f56565; --income: #3ecf8e; --expense: #f56565;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a {
+    display: block; padding: 7px 14px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500;
+    transition: color .2s, background .2s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--border); }
+  .nav-links a.active { color: var(--accent); background: var(--border); }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 14px; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+  .page-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px 24px; animation: fadeUp .4s ease both;
+  }
+  .summary-card:nth-child(2) { animation-delay: .05s; }
+  .summary-card:nth-child(3) { animation-delay: .1s; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .summary-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+  .summary-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -1px; }
+  .summary-value.income { color: var(--income); }
+  .summary-value.expense { color: var(--expense); }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; animation: fadeUp .4s ease .15s both;
+  }
+  .chart-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.income { background: var(--income); }
+  .dot.expense { background: var(--expense); }
+  .chart-wrap { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; }
+  .empty-chart { display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+  .empty-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .top-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; animation: fadeUp .4s ease .25s both; }
+  .top-card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .cat-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .cat-item:last-child { border-bottom: none; }
+  .cat-name { font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .cat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .cat-icon.income { background: rgba(62,207,142,.12); }
+  .cat-icon.expense { background: rgba(245,101,101,.12); }
+  .cat-amount { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; }
+  .cat-amount.income { color: var(--income); }
+  .cat-amount.expense { color: var(--expense); }
+  .empty-list { color: var(--muted); font-size: 14px; padding: 16px 0; text-align: center; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">fin<span>track</span></div>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">Главная</a></li>
+    <li><a href="alltime.html">За год</a></li>
+    <li><a href="filters.html">Фильтры</a></li>
+    <li><a href="records.html">Записи</a></li>
+    <li><a href="add.html">+ Добавить</a></li>
+  </ul>
+  <button class="btn-logout" onclick="logout()">Выйти</button>
+</nav>
+<main>
+  <div class="page-title">Обзор за <span id="monthName">...</span></div>
+  <div class="page-sub">Текущий месяц</div>
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-label">Доходы</div>
+      <div class="summary-value income" id="totalIncome">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Расходы</div>
+      <div class="summary-value expense" id="totalExpense">—</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Баланс</div>
+      <div class="summary-value" id="balance">—</div>
+    </div>
+  </div>
+  <div class="charts">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot income"></span> Доходы по категориям</div>
+      <div class="chart-wrap">
+        <canvas id="incomeChart"></canvas>
+        <div class="empty-chart" id="incomeEmpty" style="display:none">
+          <div class="empty-icon">💰</div><div>Нет доходов за этот месяц</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot expense"></span> Расходы по категориям</div>
+      <div class="chart-wrap">
+        <canvas id="expenseChart"></canvas>
+        <div class="empty-chart" id="expenseEmpty" style="display:none">
+          <div class="empty-icon">💸</div><div>Нет расходов за этот месяц</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="top-grid">
+    <div class="top-card">
+      <div class="top-card-title"><span class="dot income"></span> Топ доходы</div>
+      <div id="topIncome"><div class="empty-list">Загрузка...</div></div>
+    </div>
+    <div class="top-card">
+      <div class="top-card-title"><span class="dot expense"></span> Топ расходы</div>
+      <div id="topExpense"><div class="empty-list">Загрузка...</div></div>
+    </div>
+  </div>
+</main>
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'login.html';
+  const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const ICONS = {'Продукты':'🛒','Транспорт':'🚇','Жильё и ЖКХ':'🏠','Здоровье':'💊','Развлечения':'🎮','Одежда':'👕','Образование':'📚','Спорт':'🏃','Кафе и рестораны':'☕','Путешествия':'✈️','Техника':'💻','Другое':'📦','Зарплата':'💼','Фриланс':'🖥️','Подарок':'🎁','Инвестиции':'📈'};
+  const now = new Date();
+  document.getElementById('monthName').textContent = MONTHS[now.getMonth()];
+
+  async function apiFetch(url) {
+    const res = await fetch(`${API}${url}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.status === 401) { logout(); return []; }
+    return res.json();
+  }
+
+  function groupByCategory(data) {
+    const map = {};
+    data.forEach(f => { map[f.category] = (map[f.category] || 0) + f.amount; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }
+
+  function fmt(n) {
+    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+  }
+
+  function renderDonut(canvasId, emptyId, entries, colors) {
+    const canvas = document.getElementById(canvasId);
+    const empty = document.getElementById(emptyId);
+    if (!entries.length) { canvas.style.display = 'none'; empty.style.display = 'flex'; return; }
+    canvas.style.display = 'block'; empty.style.display = 'none';
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: entries.map(e => e[0]),
+        datasets: [{ data: entries.map(e => e[1]), backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { position: 'right', labels: { color: '#6b6b80', font: { family: 'DM Sans', size: 12 }, boxWidth: 10, padding: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.parsed)}` } }
+        }
+      }
+    });
+  }
+
+  function renderTop(id, entries, type) {
+    const el = document.getElementById(id);
+    if (!entries.length) { el.innerHTML = '<div class="empty-list">Нет данных</div>'; return; }
+    el.innerHTML = entries.slice(0,3).map(([cat, amt]) => `
+      <div class="cat-item">
+        <div class="cat-name"><div class="cat-icon ${type}">${ICONS[cat]||'📌'}</div>${cat}</div>
+        <div class="cat-amount ${type}">${fmt(amt)}</div>
+      </div>`).join('');
+  }
+
+  async function load() {
+    const [income, expense] = await Promise.all([
+      apiFetch('/finance/month-category?type=income&month_bool=true'),
+      apiFetch('/finance/month-category?type=expense&month_bool=true'),
+    ]);
+    const totalI = income.reduce((s,f) => s + f.amount, 0);
+    const totalE = expense.reduce((s,f) => s + f.amount, 0);
+    const bal = totalI - totalE;
+    document.getElementById('totalIncome').textContent = fmt(totalI);
+    document.getElementById('totalExpense').textContent = fmt(totalE);
+    const balEl = document.getElementById('balance');
+    balEl.textContent = fmt(bal);
+    balEl.style.color = bal >= 0 ? 'var(--income)' : 'var(--expense)';
+    const ig = groupByCategory(income), eg = groupByCategory(expense);
+    renderDonut('incomeChart','incomeEmpty', ig, ['#3ecf8e','#5dd9a0','#7de3b2','#9dedc4','#bcf5d6']);
+    renderDonut('expenseChart','expenseEmpty', eg, ['#f56565','#f78080','#f99a9a','#fbb4b4','#fdcece']);
+    renderTop('topIncome', ig, 'income');
+    renderTop('topExpense', eg, 'expense');
+  }
+
+  function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+  load();
+</script>
+</body>
+</html>

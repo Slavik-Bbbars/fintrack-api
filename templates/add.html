@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fintrack — Добавить</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent: #7c6af7;
+    --accent2: #3ecf8e;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --danger: #f56565;
+    --income: #3ecf8e;
+    --expense: #f56565;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; list-style: none; }
+  .nav-links a {
+    display: block; padding: 7px 14px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500;
+    transition: color .2s, background .2s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--border); }
+  .nav-links a.active { color: var(--accent); }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 14px; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  main {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  .page-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    animation: fadeUp .4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* TYPE TOGGLE */
+  .type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .type-btn {
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .type-btn.income-active {
+    background: rgba(62,207,142,.12);
+    border-color: var(--income);
+    color: var(--income);
+  }
+  .type-btn.expense-active {
+    background: rgba(245,101,101,.12);
+    border-color: var(--expense);
+    color: var(--expense);
+  }
+
+  .field { margin-bottom: 20px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s;
+    cursor: pointer;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input.error-field { border-color: var(--danger); }
+
+  .field-error {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 6px;
+    display: none;
+  }
+  .field-error.show { display: block; }
+
+  .amount-wrap { position: relative; }
+  .amount-wrap input { padding-left: 40px; }
+  .currency-sign {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  .btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity .2s, transform .1s;
+    color: #fff;
+  }
+  .btn-income { background: var(--income); color: #0a0a0f; }
+  .btn-expense { background: var(--expense); }
+  .btn:hover { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .global-error {
+    background: rgba(245,101,101,.1);
+    border: 1px solid rgba(245,101,101,.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--danger);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .global-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">fin<span>track</span></div>
+<ul class="nav-links">
+  <li><a href="index.html">Главная</a></li>
+  <li><a href="alltime.html">За год</a></li>
+  <li><a href="filters.html">Фильтры</a></li>
+  <li><a href="records.html">Записи</a></li>
+  <li><a href="add.html" class="active">+ Добавить</a></li>
+</ul>
+  <div>
+    <button class="btn-logout" onclick="logout()">Выйти</button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-title">Добавить запись</div>
+  <div class="page-sub">Укажи тип, категорию и сумму</div>
+
+  <div class="card">
+    <div class="type-toggle">
+      <button class="type-btn income-active" id="btnIncome" onclick="setType('income')">
+        💰 Доход
+      </button>
+      <button class="type-btn" id="btnExpense" onclick="setType('expense')">
+        💸 Расход
+      </button>
+    </div>
+
+    <div class="global-error" id="globalError"></div>
+
+    <div class="field">
+      <label>Категория</label>
+      <select id="category"></select>
+    </div>
+
+    <div class="field">
+      <label>Сумма</label>
+      <div class="amount-wrap">
+        <span class="currency-sign">₽</span>
+        <input type="number" id="amount" placeholder="0" min="0.01" step="0.01">
+      </div>
+      <div class="field-error" id="amountError"></div>
+    </div>
+
+    <button class="btn btn-income" id="submitBtn" onclick="submit()">
+      Добавить доход
+    </button>
+  </div>
+</main>
+
+<script>
+  const API = 'http://localhost:8000';
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'login.html';
+
+  const INCOME_CATS = ['Зарплата','Фриланс','Подарок','Инвестиции','Другое'];
+  const EXPENSE_CATS = ['Продукты','Транспорт','Жильё и ЖКХ','Здоровье','Развлечения','Одежда','Образование','Спорт','Кафе и рестораны','Путешествия','Техника','Другое'];
+
+  let currentType = 'income';
+
+  function setType(type) {
+    currentType = type;
+    const btnI = document.getElementById('btnIncome');
+    const btnE = document.getElementById('btnExpense');
+    const submit = document.getElementById('submitBtn');
+
+    btnI.className = 'type-btn' + (type === 'income' ? ' income-active' : '');
+    btnE.className = 'type-btn' + (type === 'expense' ? ' expense-active' : '');
+
+    if (type === 'income') {
+      submit.className = 'btn btn-income';
+      submit.textContent = 'Добавить доход';
+    } else {
+      submit.className = 'btn btn-expense';
+      submit.textContent = 'Добавить расход';
+    }
+
+    fillCategories();
+  }
+
+  function fillCategories() {
+    const sel = document.getElementById('category');
+    const cats = currentType === 'income' ? INCOME_CATS : EXPENSE_CATS;
+    sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+
+  function validateAmount() {
+    const val = parseFloat(document.getElementById('amount').value);
+    const errEl = document.getElementById('amountError');
+    const input = document.getElementById('amount');
+
+    if (isNaN(val) || val <= 0) {
+      errEl.textContent = 'Сумма должна быть больше 0';
+      errEl.classList.add('show');
+      input.classList.add('error-field');
+      return false;
+    }
+
+    errEl.classList.remove('show');
+    input.classList.remove('error-field');
+    return true;
+  }
+
+  async function submit() {
+    if (!validateAmount()) return;
+
+    const category = document.getElementById('category').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    const errEl = document.getElementById('globalError');
+    const btn = document.getElementById('submitBtn');
+
+    errEl.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = 'Сохраняем...';
+
+    try {
+      const res = await fetch(`${API}/finance/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ amount, type: currentType, category })
+      });
+
+      if (res.status === 401) { logout(); return; }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        errEl.textContent = data.detail || 'Ошибка при добавлении';
+        errEl.classList.add('show');
+        return;
+      }
+
+      window.location.href = 'index.html';
+
+    } catch (e) {
+      errEl.textContent = 'Не удалось подключиться к серверу';
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      setType(currentType);
+    }
+  }
+
+  document.getElementById('amount').addEventListener('input', () => {
+    const val = parseFloat(document.getElementById('amount').value);
+    if (val > 0) {
+      document.getElementById('amountError').classList.remove('show');
+      document.getElementById('amount').classList.remove('error-field');
+    }
+  });
+
+  function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+  }
+
+  fillCategories();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator, EmailStr,Field
-from pydantic.v1 import ConfigDict
+from pydantic import ConfigDict
 
 from .categories import ExpenseCategory, IncomeCategory
 from datetime import datetime
@@ -28,7 +28,7 @@ class FinanceCreate(BaseModel):
     @classmethod
     def validate_category(cls, v,values):
         transaction_type = values.data.get('type')
-        if transaction_type == 'income':
+        if transaction_type == TransactionType.INCOME:
             valid = [c.value for c in IncomeCategory]
         else:
             valid = [c.value for c in ExpenseCategory]
@@ -48,3 +48,9 @@ class FinanceResponse(BaseModel):
     created_at: datetime
 
     model_config = {'from_attributes': True}  #возможность читать поля как атрибуты
+
+class FinancePaginated(BaseModel):
+    items : list[FinanceResponse]
+    total: int
+    limit : int | None
+    offset : int
